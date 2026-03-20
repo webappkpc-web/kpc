@@ -1,0 +1,258 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPC App | อุปกรณ์สำรองหอ D</title>
+    <base target="_top">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+      body { 
+        background-color: #f3f4f6; 
+        display: flex; 
+        justify-content: center; 
+        margin: 0; 
+        padding: 0;
+        overflow: hidden; 
+      }
+      
+      .iphone-15-container {
+        width: 100vw; 
+        max-width: 500px; 
+        height: 100vh; 
+        background: white;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      header { flex-shrink: 0; }
+
+      .category-scroll {
+        flex-shrink: 0;
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 10px;
+        gap: 8px;
+        scrollbar-width: none;
+      }
+      .category-scroll::-webkit-scrollbar { display: none; }
+
+      .content-area { 
+        flex-grow: 1; 
+        overflow-y: auto; 
+        padding: 12px;
+        display: flex; /* เพิ่มบรรทัดนี้ */
+        flex-direction: column; /* เพิ่มบรรทัดนี้ */
+      }
+
+      /* ตรวจสอบส่วน #content ให้มีความกว้างเต็มพื้นที่ */
+      #content {
+        width: 100%;
+      }
+
+      .card-img {
+        width: 100%; 
+        object-fit: cover; 
+        display: block; 
+      }
+
+      /* คอนเทนเนอร์ของรูปภาพเพื่อให้ข้อความอ้างอิงตำแหน่งได้ */
+      .image-container {
+        position: relative;
+        width: 100%;
+      }
+
+      /* สไตล์ของป้าย "สำรอง" */
+      .badge-reserve {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: rgba(107, 114, 128, 0.85);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 10;
+        pointer-events: none; /* เพื่อให้ยังคลิกรูปได้ปกติ */
+      }
+
+      /* ปรับขนาดฟอนต์สำหรับโหมด 3 คอลัมน์ให้เล็กลงอีกนิด */
+      .grid-view .badge-reserve {
+        font-size: 8px;
+        padding: 1px 4px;
+      }
+      
+      /* Layout Styles */
+      .grid-view { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); /* เปลี่ยนจาก 2 เป็น 3 คอลัมน์ */
+        gap: 8px; /* ลดช่องว่างระหว่าง Card เล็กน้อย */
+      }
+      .grid-view .title {
+        font-size: 0.7rem; 
+      }
+            .grid-view .desc {
+        font-size: 0.6rem;
+      }
+      .grid-view .card-img { aspect-ratio: 4 / 3; }
+      
+      .list-view { 
+        display: grid; 
+        grid-template-columns: 1fr; 
+        gap: 15px; 
+      }
+      .list-view .card-img { aspect-ratio: 16 / 9; }
+      .list-view .title { font-size: 1rem; }
+      .list-view .desc { font-size: 0.875rem; }
+
+      .fab {
+        position: absolute;
+        bottom: 45px; 
+        right: 16px;
+        width: 56px;
+        height: 56px;
+        background-color: #2563eb; 
+        color: white;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        z-index: 20;
+        border: none;
+      }
+
+      footer {
+        flex-shrink: 0;
+        background-color: #2563eb; 
+        color: white;
+        text-align: center;
+        /*padding: 12px;*/
+        padding: 6px;
+        font-size: 0.75rem;
+        font-weight: 300;
+      }
+
+     .category-btn {
+        padding: 4px 15px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        border: 1px solid #e5e7eb;
+      } 
+      .btn-active { background-color: #2563eb; color: white; border-color: #2563eb; }
+      .btn-inactive { background-color: #d1d5db; color: #1f2937; }
+    </style>
+  </head>
+  <body>
+
+    <div class="iphone-15-container">
+      <header class="p-3 bg-blue-600 text-white text-center font-bold text-lg">
+        รายการอุปกรณ์สำรองหอ D
+      </header>
+
+      <div class="category-scroll" id="categoryBar"></div>
+
+<div class="content-area" id="contentContainer">
+  <div class="grid-view" id="content">
+    <div id="loading" class="col-span-full flex flex-col items-center justify-center py-20 w-full">
+  <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  <p class="mt-4 text-gray-500 text-sm font-medium">กำลังโหลดข้อมูล...</p>
+</div>
+  </div>
+</div>
+
+      <button class="fab" id="viewSwitcher" title="สลับมุมมอง">
+          <i class="fas fa-list-ul"></i>
+      </button>
+
+      <footer>
+        DataSupport | Kangwal Polyester Co.,Ltd. | v. 1.0
+      </footer>
+    </div>
+
+    <script>
+      let data = [];
+      let currentFilter = "All";
+      let currentView = 'grid'; 
+
+      const container = document.getElementById('content');
+      const categoryBar = document.getElementById('categoryBar');
+      const switcherBtn = document.getElementById('viewSwitcher');
+
+      // 1. ฟังก์ชันดึงข้อมูลจาก GAS
+      async function loadData() {
+        try {
+          const response = await fetch('https://script.google.com/macros/s/AKfycbxnHLEXD5AOApZO-x0guXq5KreoMq2PIC5Yte4SHYLRhq2L7oTrLLb_hghVlyvDq3o20g/exec'); 
+          data = await response.json();
+
+          // สร้างหมวดหมู่หลังจากได้ข้อมูลแล้วเท่านั้น
+          const categories = ["All", ...new Set(data.map(item => item.category || "อื่นๆ"))];
+          renderCategoryButtons(categories);
+          filterData("All");
+
+        } catch (error) {
+          console.error("Error:", error);
+          container.innerHTML = "<p class='text-center p-4'>โหลดข้อมูลไม่สำเร็จ</p>";
+        }
+      }
+
+      // 2. ฟังก์ชันสร้างปุ่มหมวดหมู่
+      function renderCategoryButtons(categories) {
+        categoryBar.innerHTML = ''; 
+        categories.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.innerText = cat;
+          btn.className = `category-btn ${currentFilter === cat ? 'btn-active' : 'btn-inactive'}`;
+          btn.onclick = () => {
+            currentFilter = cat;
+            renderCategoryButtons(categories); 
+            filterData(cat);
+          };
+          categoryBar.appendChild(btn);
+        });
+      }
+
+      // 3. ฟังก์ชันแสดง Card
+      function filterData(selectedCat) {
+        container.innerHTML = ''; 
+        const filtered = selectedCat === "All" ? data : data.filter(item => (item.category || "อื่นๆ") === selectedCat);
+        
+        filtered.forEach(item => {
+          const card = document.createElement('div');
+          card.className = "card bg-white border rounded-lg overflow-hidden shadow-sm"; 
+
+          const formattedDesc = (item.desc || "").replace(/\n/g, '<br>');
+
+          card.innerHTML = `
+            <div class="image-container">
+              <img src="${item.img}" class="card-img" onerror="this.src='https://via.placeholder.com/200?text=No+Image'">
+              <div class="badge-reserve">${item.category} | ${item.qty}</div>
+            </div>
+            <div class="p-1.5 card-body"> 
+              <h3 class="font-bold text-[11px] truncate title">${item.title}</h3> 
+              <p class="text-[9px] text-gray-600 leading-tight mt-0.5 desc">${formattedDesc}</p> 
+            </div>
+          `;
+          container.appendChild(card);
+        });
+        
+      }
+
+      // 4. ฟังก์ชันสลับมุมมอง Grid/List
+      switcherBtn.onclick = () => {
+        currentView = currentView === 'grid' ? 'list' : 'grid';
+        container.className = currentView === 'grid' ? 'grid-view' : 'list-view';
+        switcherBtn.innerHTML = currentView === 'grid' ? '<i class="fas fa-list-ul"></i>' : '<i class="fas fa-th-large"></i>';
+      };
+
+      // เริ่มทำงาน
+      loadData();
+    </script>
+  </body>
+</html>
