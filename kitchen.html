@@ -229,32 +229,31 @@
 let lastCallTime = "";
 
 async function loadCalls() {
-    console.log("🔔 checking calls...");
-
     try {
         const res = await fetch(CALL_URL);
         const data = await res.json();
-
-        console.log("CALL DATA:", data);
 
         if (!data.length) return;
 
         const lastCall = data[data.length - 1];
 
-        // ✅ กันแจ้งซ้ำ
         if (lastCall.time === lastCallTime) return;
-
         lastCallTime = lastCall.time;
 
-        showCallAlert(lastCall.table);
+        // 🔥 แยกประเภท
+        if (lastCall.type === "bill") {
+            showBillAlert(lastCall.table, lastCall.total);
+        } else {
+            showCallAlert(lastCall.table);
+        }
 
     } catch (err) {
-        console.error("CALL ERROR:", err);
+        console.error(err);
     }
 }
 
-function showCallAlert(table) {
-    alert("🔔 โต๊ะ " + table + " เรียกพนักงาน");
+function showBillAlert(table, total) {
+    alert("💰 โต๊ะ " + table + " ขอเช็คบิล\nยอดรวม: ฿" + total);
 }
   
     // เริ่มโหลดข้อมูล
