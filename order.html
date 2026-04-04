@@ -1167,6 +1167,10 @@ async function viewAllOrders() {
 
         totalEl.innerHTML = `รวมทั้งหมด: ฿${grandTotal}`;
 
+        // หลังคำนวณ grandTotal เสร็จ
+        fetch("https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=callBill&table=" 
+            + table + "&total=" + grandTotal);
+
     } catch (err) {
         list.innerHTML = "<p class='text-red-500'>โหลดไม่สำเร็จ</p>";
         console.error(err);
