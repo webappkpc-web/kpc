@@ -593,10 +593,38 @@
         const switcherBtn = document.getElementById('viewSwitcher');
 
         // ตั้งค่า Barcode (เหมือน QR)
-        const tableCode = "20260401-A5";
+/*        const tableCode = "20260401-A5";
         const table = tableCode.split("-")[1];
         document.getElementById("table").innerText = table;
+*/
+// อ่านค่า table จาก URL เช่น ?table=A1
+const urlParams = new URLSearchParams(window.location.search);
 
+// ดึงค่า table
+let table = urlParams.get("table");
+
+// 🔥 กันเคส null / ว่าง / มีช่องว่าง
+if (!table || table.trim() === "") {
+    table = "UNKNOWN"; // หรือจะตั้ง default เช่น A1 ก็ได้
+}
+
+// 🔥 ลบช่องว่าง + แปลงเป็นตัวพิมพ์ใหญ่
+table = table.trim().toUpperCase();
+
+// สร้าง tableCode (ถ้ายังอยากใช้ format เดิม)
+const today = new Date();
+const yyyymmdd = today.toISOString().slice(0,10).replace(/-/g,"");
+
+const tableCode = `${yyyymmdd}-${table}`;
+
+// แสดงผล
+document.getElementById("table").innerText = table;
+
+console.log("TABLE:", table);
+console.log("TABLE CODE:", tableCode);
+        
+        document.getElementById("table").innerText = table;
+        
         // สร้าง หรือ โหลด session เก่า
         let sessionId = localStorage.getItem("session_id");
         if (!sessionId) {
