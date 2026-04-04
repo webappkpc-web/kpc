@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kitchen Dashboard - ครัวจันทร์เพ็ญ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f3f4f6; display: flex; justify-content: center; margin: 0; font-family: sans-serif; overflow: hidden; }
+        .iphone-container { width: 100vw; max-width: 500px; height: 100vh; background: #f9fafb; display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.1); position: relative; }
+        .dashboard-content { flex-grow: 1; overflow-y: auto; padding: 12px; padding-bottom: 40px; }
+        .order-card { transition: all 0.2s ease; cursor: pointer; user-select: none; }
+        .order-card:active { transform: scale(0.98); }
+        /* สีประจำสถานะ */
+        .status-pending { border-left: 5px solid #f97316; } /* ส้ม */
+        .status-cooking { border-left: 5px solid #2563eb; } /* น้ำเงิน */
+        .status-ready { border-left: 5px solid #16a34a; background-color: #f0fdf4; } /* เขียว */
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+
+      .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
+      }
+      
+      .order-card {
+          transition: transform 0.2s ease, opacity 0.2s ease;
+          will-change: transform, opacity;
+      }
+    </style>
+</head>
+<body>
+
+<div class="iphone-container">
+    <header class="bg-slate-800 text-white p-4 shadow-lg">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-fire-alt text-orange-400"></i>
+                <h1 class="font-bold text-lg">รายการสั่งอาหาร</h1>
+            </div>
+            <button onclick="loadKdsData()" class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center active:rotate-180 transition-all duration-500">
+                <i id="reloadIcon" class="fas fa-sync-alt text-sm"></i>
+            </button>
+        </div>
+        <div class="flex gap-4 mt-3 text-[11px] font-medium opacity-90">
+            <span id="pLabel" class="bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full">รอทำ: 0</span>
+            <span id="cLabel" class="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">กำลังทำ: 0</span>
+        </div>
+    </header>
+
+    <div class="dashboard-content" id="dashboardContent">
+        <div id="loadingKDS" class="flex flex-col items-center justify-center py-20">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-400 text-xs">กำลังเชื่อมต่อห้องครัว...</p>
+        </div>
+        <div id="orderList" class="space-y-3"></div>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?view=kitchen';
+    let kdsOrders = [];
+    let lastDataSignature = ""; // เอาไว้เช็กว่าข้อมูลเปลี่ยนจริงไหม
+    let autoRefreshInterval;    // เพิ่มตัวแปรสำหรับเก็บ Interval
+
+    // ฟังก์ชันเริ่มการทำงานอัตโนมัติ
+    function startAutoRefresh() {
+        // โหลดครั้งแรกทันที
+        loadKdsData();
+
+        // ตั้งเวลาให้โหลดทุก 10 วินาที (10000 มิลลิวินาที)
+        autoRefreshInterval = setInterval(loadKdsData, 10000);
+    }
+   
+    async function loadKdsData() {
+        const loading = document.getElementById('loadingKDS');
+        const list = document.getElementById('orderList');
+        const icon = document.getElementById('reloadIcon');
+
+        // แสดง spinner ที่ปุ่ม reload เสมอเมื่อมีการดึงข้อมูล
+        if (icon) icon.classList.add('fa-spin');
+
+        // ตรวจสอบว่าถ้ามีรายการอาหารอยู่บนจอแล้ว ไม่ต้องแสดงหน้า Loading จอขาว
+        // (จะแสดง Loading เฉพาะตอนเปิดหน้าเวปครั้งแรกที่ kdsOrders ยังว่างอยู่)
+        if (kdsOrders.length === 0) {
+            loading.classList.remove('hidden');
+        }
+
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+
+            if (data && Array.isArray(data)) {
+                // เรียงลำดับ: เก่าสุดอยู่บน -> ใหม่สุดอยู่ล่าง
+                kdsOrders = data.sort((a, b) => {
+                    const timeA = a.timestamp || 0;
+                    const timeB = b.timestamp || 0;
+                    return timeA - timeB;
+                });
+                renderKDS();
+            }
+        } catch (error) {
+            console.error("Load Error:", error);
+            // แสดง error เฉพาะตอนที่ไม่มีข้อมูลแสดงอยู่เลย
+            if (kdsOrders.length === 0) {
+                list.innerHTML = `<p class="text-center py-10 text-red-400 text-xs">เชื่อมต่อไม่ได้ กรุณาลองใหม่</p>`;
+            }
+        } finally {
+            // ปิดหน้า Loading เสมอหลังโหลดเสร็จ
+            loading.classList.add('hidden');
+            if (icon) {
+                setTimeout(() => icon.classList.remove('fa-spin'), 500);
+            }
+        }
+    }
+  
+     function renderKDS() {
+        const list = document.getElementById('orderList');
+
+        // สร้าง "ลายนิ้วมือ" ของข้อมูลปัจจุบัน (รวม ID และ Status)
+        const currentSignature = JSON.stringify(kdsOrders.map(o => `${o.order_id}-${o.status}`));
+
+        // ถ้าข้อมูลเหมือนเดิมเป๊ะ ไม่ต้องทำอะไรต่อ (ป้องกันจอสะดุด)
+        if (currentSignature === lastDataSignature) {
+            return; 
+        }
+        
+        // บันทึกค่าใหม่ไว้ใช้เช็กครั้งหน้า
+        lastDataSignature = currentSignature;
+        
+        list.innerHTML = '';
+        
+        let p = 0, c = 0;
+
+        if (!kdsOrders || kdsOrders.length === 0) {
+            list.innerHTML = `<p class="text-center py-20 text-gray-400 text-xs font-light">ยังไม่มีออเดอร์ใหม่</p>`;
+            updateLabels(0, 0);
+            return;
+        }
+
+        kdsOrders.forEach((order, index) => {
+            if (order.status === 'pending') p++;
+            if (order.status === 'cooking') c++;            
+            if (order.status === 'ready') return;
+
+            const card = document.createElement('div');
+            //card.className = `order-card bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between animate-fadeIn status-${order.status}`;
+            card.className = `order-card animate-fadeIn bg-white rounded-xl p-4 mb-3 border-l-4 ${order.status === 'pending' ? 'border-orange-400' : 'border-blue-400'} shadow-sm flex items-center gap-4`;
+            
+            card.onclick = () => updateStatus(order);
+
+            card.innerHTML = `
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${order.status === 'pending' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}">
+                            โต๊ะ ${order.table_no || '-'}
+                        </span>
+                        <span class="text-gray-400 text-[9px]">#${order.order_id || '000'}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-sm">${order.menu}</h3>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-2xl font-black text-slate-700">${order.qty}</span>
+                    <div class="text-right">
+                        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 text-slate-400">
+                             <i class="fas ${order.status === 'pending' ? 'fa-clock' : 'fa-fire-burner'}"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+
+        updateLabels(p, c);
+    }
+
+    async function updateStatus(order) {
+        let nextStatus = '';
+
+        // 1. กำหนด Logic การเปลี่ยนสถานะ
+        if (order.status === 'pending') {
+            nextStatus = 'cooking';
+        } else if (order.status === 'cooking') {
+            nextStatus = 'ready';
+        } else {
+            return; // ถ้าเป็น ready อยู่แล้วไม่ต้องทำอะไร
+        }
+
+        // เก็บสถานะเดิมไว้เผื่อกรณี Error จะได้ย้อนกลับ (Rollback) ได้
+        const originalStatus = order.status;
+
+        // 2. แสดง Feedback ที่หน้าจอทันที (Optimistic UI Update)
+        order.status = nextStatus;
+        renderKDS();
+
+        try {
+            // 3. ส่งข้อมูลไปอัปเดตที่ Google Sheets ผ่าน URL Parameters
+            // วิธีนี้จะช่วยเลี่ยงปัญหา CORS และทำให้ Apps Script รับค่าจาก e.parameter ได้แน่นอน
+            const updateUrl = `${SCRIPT_URL}&action=updateStatus&order_id=${encodeURIComponent(order.order_id)}&new_status=${nextStatus}`;
+
+            await fetch(updateUrl, {
+                method: 'GET',
+                mode: 'no-cors' // จำเป็นสำหรับ Google Apps Script เพื่อไม่ให้ติดบล็อก Browser
+            });
+
+            console.log(`Order ${order.order_id} updated to ${nextStatus}`);
+
+        } catch (error) {
+            console.error("Update Error:", error);
+            // กรณีเกิด Error ให้คืนค่าสถานะเดิมบนหน้าจอ และแจ้งเตือนผู้ใช้
+            order.status = originalStatus;
+            renderKDS();
+            alert("ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+        }
+    }
+
+    function updateLabels(p, c) {
+        document.getElementById('pLabel').innerText = `รอทำ: ${p}`;
+        document.getElementById('cLabel').innerText = `กำลังทำ: ${c}`;
+    }
+
+    // เริ่มโหลดข้อมูล
+    startAutoRefresh();
+  
+</script>
+
+</body>
+</html>
