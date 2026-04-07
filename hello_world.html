@@ -1,9 +1,50 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-  <title>Hello World.</title>
+    <meta charset="UTF-8">
+    <title>Call Debug</title>
 </head>
 <body>
-  Hello World.
+
+<h2>📞 Call List (Debug)</h2>
+
+<div id="callList">กำลังโหลด...</div>
+
+<script>
+const URL = "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=calls";
+
+async function loadCalls() {
+    try {
+        const res = await fetch(URL);
+        const data = await res.json();
+
+        console.log("RAW DATA:", data);
+
+        const div = document.getElementById("callList");
+        div.innerHTML = "";
+
+        data.forEach(item => {
+
+            console.log("ITEM:", item);
+
+            // 🔍 ลองหลาย key กันพลาด
+            const table = item.table || item.Table || item.TABLE || "???";
+            const time = new Date(item.timestamp || item.time).toLocaleTimeString();
+
+            const row = document.createElement("div");
+            row.innerText = `[ โต๊ะ ${table}  ${time} ]`;
+
+            div.appendChild(row);
+        });
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("callList").innerText = "โหลดไม่สำเร็จ";
+    }
+}
+
+loadCalls();
+</script>
+
 </body>
 </html>
