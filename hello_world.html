@@ -88,6 +88,12 @@ async function loadCalls() {
 
         const callList = document.getElementById("callList");
 
+        // ✅ เคลียร์ก่อน render ใหม่
+        callList.innerHTML = "";
+        renderedCallIds.clear();      
+      
+        console.log("RAW DATA:", data);
+      
         filtered.sort((a, b) => b.timestamp - a.timestamp); // ใหม่อยู่บน
 
         filtered.forEach(item => {
@@ -102,7 +108,9 @@ async function loadCalls() {
                 const table = item.table;
                 const timeStr = new Date(item.timestamp).toLocaleTimeString();
                 const status = item.status;
+              
 
+              
                 div.innerHTML = `
                     <strong> 🔔 โต๊ะ ${table} </strong>
                     <small>${timeStr} </small>
