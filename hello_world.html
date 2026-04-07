@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Call Debug 1338</title>
+    <title>Call Debug 13:41</title>
 </head>
 <body>
 
@@ -29,7 +29,7 @@ async function loadCalls() {
 
             // 🔍 ลองหลาย key กันพลาด
             //const table = item.table || item.Table || item.TABLE || "???";
-            const table = item.tableID;
+            const table = item.table;
             const time = new Date(item.timestamp || item.time).toLocaleTimeString();
 
             const row = document.createElement("div");
