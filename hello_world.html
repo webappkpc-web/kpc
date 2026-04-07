@@ -28,7 +28,8 @@ async function loadCalls() {
             console.log("ITEM:", item);
 
             // 🔍 ลองหลาย key กันพลาด
-            const table = item.table || item.Table || item.TABLE || "???";
+            //const table = item.table || item.Table || item.TABLE || "???";
+            const table = item.tableID;
             const time = new Date(item.timestamp || item.time).toLocaleTimeString();
 
             const row = document.createElement("div");
