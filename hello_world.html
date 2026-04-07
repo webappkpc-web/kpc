@@ -1,51 +1,305 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <base target="_top">
     <meta charset="UTF-8">
-    <title>Call Debug 13:41</title>
+    <title>Kitchen Display System</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        /* สไตล์สำหรับข้อความรีเฟรช */
+        #refreshingStatus {
+            font-size: 0.5em;
+            color: #2196F3;
+            margin-left: 10px;
+            display: none; /* เริ่มต้นให้ซ่อนไว้ */
+            vertical-align: middle;
+        }
+        .order-container { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .order-card {
+            background: white; padding: 15px; border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer;
+            border-left: 5px solid #ff9800; transition: transform 0.2s;
+        }
+        .order-card:hover { transform: scale(1.02); background: #fffdfa; }
+        .order-info { display: flex; justify-content: space-between; }
+        .menu-name { font-weight: bold; font-size: 1.2em; }
+        .time-stamp { color: #888; font-size: 0.8em; }
+        .fade-out {
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.5s ease;
+        }
+      .call-card {
+          background: #fff3f3;
+          border-left: 5px solid #e53935;
+          padding: 10px;
+          border-radius: 6px;
+          margin-bottom: 8px;
+          animation: blink 1s infinite alternate;
+      }
+
+      @keyframes blink {
+          from { opacity: 1; }
+          to { opacity: 0.6; }
+      }
+      
+    </style>
 </head>
 <body>
 
-<h2>📞 Call List (Debug)</h2>
+    <h2>
+        รายการ
+        <span id="refreshingStatus">(กำลังรีเฟรช...)</span>
+    </h2>
+  
+    <div id="callSection" style="margin-bottom: 15px;">
+        <div id="callList"></div>
+    </div>
+  
+    <div id="orderList" class="order-container">
+        กำลังโหลดข้อมูล...
+    </div>
 
-<div id="callList">กำลังโหลด...</div>
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?view=kitchen';
+     </script>      
 
 <script>
-const URL = "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=calls";
+    
+    const statusEl = document.getElementById('refreshingStatus');
+    const container = document.getElementById('orderList');
+  
+    let renderedOrderIds = new Set();
+    let isFirstLoad = true;
+    let updateQueue = [];
+//
+  let renderedCallIds = new Set();
 
+  
+  const CALL_URL = "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=calls";
+  
 async function loadCalls() {
     try {
-        const res = await fetch(URL);
+      
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=calls");
+           
         const data = await res.json();
+        const filtered = data.filter(item => item.status !== 'done');
 
-        console.log("RAW DATA:", data);
+        const callList = document.getElementById("callList");
 
-        const div = document.getElementById("callList");
-        div.innerHTML = "";
+        filtered.sort((a, b) => b.timestamp - a.timestamp); // ใหม่อยู่บน
 
-        data.forEach(item => {
+        filtered.forEach(item => {
+            const key = item.table + "_" + item.timestamp;
 
-            console.log("ITEM:", item);
+            if (!renderedCallIds.has(key)) {
 
-            // 🔍 ลองหลาย key กันพลาด
-            //const table = item.table || item.Table || item.TABLE || "???";
-            const table = item.table;
-            const time = new Date(item.timestamp || item.time).toLocaleTimeString();
+                const div = document.createElement("div");
+                div.className = "call-card";
+                div.onclick = () => handleCallDone(item, div);
+                
+                const table = item.table;
+                const timeStr = new Date(item.timestamp).toLocaleTimeString();
+                const status = item.status;
 
-            const row = document.createElement("div");
-            row.innerText = `[ โต๊ะ ${table}  ${time} ]`;
+                div.innerHTML = `
+                    <strong> 🔔 โต๊ะ ${table} </strong>
+                    <small>${timeStr} </small>
+                    <small>${status} </small>
+                `;
 
-            div.appendChild(row);
+                callList.prepend(div);
+
+                renderedCallIds.add(key);
+
+                // 🔊 (optional) เล่นเสียง
+                //playDing();
+            }
         });
 
     } catch (err) {
-        console.error(err);
-        document.getElementById("callList").innerText = "โหลดไม่สำเร็จ";
+        console.error("โหลด call ไม่สำเร็จ", err);
     }
 }
+  
+  async function handleCallDone(item, element) {
 
-loadCalls();
+    // กันกดซ้ำ
+    element.style.pointerEvents = 'none';
+
+    // ✅ fade out
+    element.style.opacity = '0.3';
+
+    // ✅ ยิงไป update GAS
+    try {
+        await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateCallStatus',
+                table: item.tableID || item.table,
+                timestamp: item.timestamp,
+                status: 'done'
+            })
+        });
+
+        // ✅ ลบออกจาก UI
+        setTimeout(() => element.remove(), 300);
+
+    } catch (err) {
+        console.error(err);
+        alert('อัปเดตไม่สำเร็จ');
+
+        // rollback
+        element.style.pointerEvents = 'auto';
+        element.style.opacity = '1';
+    }
+}
+  
+//
+    function getNextStatus(current) {
+        if (current === 'pending') return 'cooking';
+        if (current === 'cooking') return 'done';
+        return 'done';
+    }
+  
+   function updateCardStyle(card, status) {
+      if (status === 'pending') {
+        card.style.borderLeftColor = '#ff9800'; // ส้ม
+      } else if (status === 'cooking') {
+        card.style.borderLeftColor = '#2196F3'; // น้ำเงิน
+      } else if (status === 'done') {
+        card.style.borderLeftColor = '#4CAF50'; // เขียว
+      }
+  }
+    async function loadOrders() {
+        statusEl.style.display = 'inline';
+
+        try {
+            const response = await fetch(WEB_APP_URL);
+            const ggs_data = await response.json();
+            const data = ggs_data.filter(item => item.status !== 'done');
+
+            // 1. เรียงลำดับจากเก่าสุดไปใหม่สุด (เพื่อให้รายการใหม่ไปต่อท้ายสุดเสมอ)
+            data.sort((a, b) => a.timestamp - b.timestamp);
+
+            // 2. จัดการหน้าจอครั้งแรก
+            if (isFirstLoad) {
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML = 'ไม่มีรายการค้าง';
+                }
+            }
+
+            // 3. วนลูปด้วย standard for loop เพื่อความชัวร์ในการทำงานต่อเนื่อง
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+
+
+                // สร้าง Unique Key โดยการรวม ID และ ชื่อเมนู (ป้องกันกรณี ID ซ้ำแต่คนละเมนู)
+                const timeStr = new Date(item.timestamp).toLocaleTimeString();
+                const itemKey = item.order_id + "_" + item.menu + "_" + timeStr;
+
+                // ตรวจสอบว่า Key นี้ยังไม่เคยถูกวาด
+                if (!renderedOrderIds.has(itemKey)) {
+
+                    if (container.innerText === 'ไม่มีรายการค้าง') {
+                        container.innerHTML = '';
+                    }
+
+                    const card = createOrderCard(item);
+                    container.appendChild(card);
+
+                    // บันทึก Unique Key ลงใน Set
+                    renderedOrderIds.add(itemKey);
+                }
+            }
+
+            // 4. เปลี่ยนสถานะหลังจากมั่นใจว่า loop ข้างบนทำงานเสร็จหมดแล้ว
+            isFirstLoad = false;
+
+        } catch (error) {
+            console.error('Error:', error);
+            if (isFirstLoad) container.innerHTML = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+        } finally {
+            // ซ่อนสถานะรีเฟรช
+            setTimeout(() => { statusEl.style.display = 'none'; }, 500);
+        }
+    }
+
+    function createOrderCard(item) {
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        card.onclick = () => {
+
+            if (item.status === 'done') return;
+
+            const nextStatus = getNextStatus(item.status);
+
+            // ✅ เปลี่ยน UI ทันที
+            item.status = nextStatus;
+            card.querySelector('strong').innerText = nextStatus;
+            updateCardStyle(card, nextStatus);
+
+            // ✅ เก็บเข้าคิวแทนยิงทันที
+            updateQueue.push({
+                order_id: item.order_id,
+                menu: item.menu,
+                status: nextStatus
+            });
+
+            // fade out ถ้า done
+            if (nextStatus === 'done') {
+                card.style.pointerEvents = 'none';
+
+                setTimeout(() => {
+                    card.classList.add('fade-out');
+                    setTimeout(() => card.remove(), 500);
+                }, 300);
+            }
+        };
+
+        const timeStr = new Date(item.timestamp).toLocaleTimeString();
+        card.innerHTML = `
+            <div class="order-info">
+                <span class="menu-name">${item.menu} (x${item.qty})</span>
+                <span class="time-stamp">${timeStr}</span>
+            </div>
+            <div>โต๊ะ: ${item.table_no} | สถานะ: <strong>${item.status}</strong></div>
+        `;
+      updateCardStyle(card, item.status);
+        return card;
+    }
+  
+  async function flushUpdates() {
+    if (updateQueue.length === 0) return;
+
+    const queueCopy = [...updateQueue];
+    updateQueue = []; // เคลียร์ก่อน (กันซ้ำ)
+
+    try {
+        await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'batchUpdateStatus',
+                updates: queueCopy
+            })
+        });
+    } catch (err) {
+        console.error('Batch update failed:', err);
+
+        // ❗ ถ้าพลาด → ใส่กลับเข้า queue
+        updateQueue = [...queueCopy, ...updateQueue];
+    }
+}
+    setInterval(flushUpdates, 10000);
+    setInterval(loadCalls, 5000);
+  
+    loadOrders();
+  
+    setInterval(loadOrders, 10000); // รีเฟรชทุก 10 วินาที
+  
 </script>
-
+  
 </body>
 </html>
