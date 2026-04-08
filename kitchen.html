@@ -1,82 +1,122 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <base target="_top" />
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Kitchen Display System</title>
     <style>
       body {
-        font-family: sans-serif;
-        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 10px; /* ลด Padding ขอบจอลงเล็กน้อย */
         background-color: #f4f4f9;
+        margin: 0;
+        /* ป้องกันการขยายตัวอักษรอัตโนมัติในมือถือบางรุ่น */
+        -webkit-text-size-adjust: 100%;
       }
-      /* สไตล์สำหรับข้อความรีเฟรช */
+
+      h2 {
+        font-size: 1.5rem;
+        margin: 15px 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* ปรับข้อความรีเฟรชให้อ่านออกในมือถือ */
       #refreshingStatus {
-        font-size: 0.5em;
+        font-size: 0.8rem; 
         color: #2196f3;
-        margin-left: 10px;
-        display: none; /* เริ่มต้นให้ซ่อนไว้ */
-        vertical-align: middle;
+        font-weight: normal;
+        background: #e3f2fd;
+        padding: 2px 8px;
+        border-radius: 10px;
       }
+
       .order-container {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-top: 20px;
+        gap: 12px;
+        margin-top: 10px;
       }
+
+      /* ขยายขนาดการ์ดและพื้นที่สัมผัส */
       .order-card {
         background: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 18px; /* เพิ่ม Padding ให้กดง่ายขึ้น */
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         cursor: pointer;
-        border-left: 5px solid #ff9800;
-        transition: transform 0.2s;
+        border-left: 8px solid #ff9800; /* เส้นหนาขึ้นเพื่อให้เห็นสถานะชัดๆ */
+        transition: transform 0.1s;
+        -webkit-tap-highlight-color: transparent; /* ลบไฮไลท์สีฟ้าเวลาแตะ */
       }
-      .order-card:hover {
-        transform: scale(1.02);
-        background: #fffdfa;
+
+      .order-card:active {
+        transform: scale(0.98); /* เอฟเฟกต์ยุบตัวเวลาแตะจริง */
+        background: #fafafa;
       }
+
       .order-info {
         display: flex;
         justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
       }
+
+      /* ขยายชื่อเมนูให้อ่านง่าย */
       .menu-name {
         font-weight: bold;
-        font-size: 1.2em;
+        font-size: 1.3rem;
+        color: #333;
+        line-height: 1.2;
       }
+
       .time-stamp {
-        color: #888;
-        font-size: 0.8em;
+        color: #777;
+        font-size: 0.9rem;
+        background: #eee;
+        padding: 2px 6px;
+        border-radius: 4px;
       }
-      .fade-out {
-        opacity: 0;
-        transform: translateX(50px);
-        transition: all 0.5s ease;
+
+      /* ปรับปรุงการแสดงผลเลขโต๊ะและสถานะ */
+      .order-status-row {
+        font-size: 1.1rem;
+        color: #555;
       }
+
+      .order-status-row strong {
+        color: #000;
+        text-transform: uppercase;
+        background: #f0f0f0;
+        padding: 0 5px;
+        border-radius: 3px;
+      }
+
+      /* ส่วนเรียกพนักงาน (Call Section) */
       .call-card {
         background: #fff3f3;
-        border-left: 5px solid #e53935;
-        padding: 10px;
-        border-radius: 6px;
-        margin-bottom: 8px;
-        animation: blink 1s infinite alternate;
+        border-left: 8px solid #e53935;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(229, 57, 53, 0.2);
+        animation: blink 1.5s infinite alternate;
       }
 
       @keyframes blink {
-        from {
-          opacity: 1;
-        }
-        to {
-          opacity: 0.6;
-        }
+        from { opacity: 1; }
+        to { opacity: 0.8; }
       }
+
       .fade-out {
-          opacity: 0;
-          transition: opacity 0.3s ease;
+        opacity: 0;
+        transform: scale(0.9);
+        transition: all 0.3s ease;
       }
     </style>
-  </head>
+</head>
   <body>
     <h2>
       รายการ
@@ -291,6 +331,7 @@ console.log(item);
 
           // ✅ เก็บเข้าคิวแทนยิงทันที
           updateQueue.push({
+            type: 'order', 
             order_id: item.order_id,
             menu: item.menu,
             status: nextStatus,
@@ -321,7 +362,7 @@ console.log(item);
 
 async function flushUpdates() {
     if (updateQueue.length === 0) return;
-
+console.log("🔥 flushing:", updateQueue); // ✅ เพิ่ม
     const queueCopy = [...updateQueue];
     updateQueue = [];
 
