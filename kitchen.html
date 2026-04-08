@@ -1,265 +1,361 @@
 <!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kitchen Dashboard - ครัวจันทร์เพ็ญ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <title>Kitchen Display System</title>
     <style>
-        body { background-color: #f3f4f6; display: flex; justify-content: center; margin: 0; font-family: sans-serif; overflow: hidden; }
-        .iphone-container { width: 100vw; max-width: 500px; height: 100vh; background: #f9fafb; display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.1); position: relative; }
-        .dashboard-content { flex-grow: 1; overflow-y: auto; padding: 12px; padding-bottom: 40px; }
-        .order-card { transition: all 0.2s ease; cursor: pointer; user-select: none; }
-        .order-card:active { transform: scale(0.98); }
-        /* สีประจำสถานะ */
-        .status-pending { border-left: 5px solid #f97316; } /* ส้ม */
-        .status-cooking { border-left: 5px solid #2563eb; } /* น้ำเงิน */
-        .status-ready { border-left: 5px solid #16a34a; background-color: #f0fdf4; } /* เขียว */
-      @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        background-color: #f4f4f9;
+      }
+      /* สไตล์สำหรับข้อความรีเฟรช */
+      #refreshingStatus {
+        font-size: 0.5em;
+        color: #2196f3;
+        margin-left: 10px;
+        display: none; /* เริ่มต้นให้ซ่อนไว้ */
+        vertical-align: middle;
+      }
+      .order-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .order-card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        border-left: 5px solid #ff9800;
+        transition: transform 0.2s;
+      }
+      .order-card:hover {
+        transform: scale(1.02);
+        background: #fffdfa;
+      }
+      .order-info {
+        display: flex;
+        justify-content: space-between;
+      }
+      .menu-name {
+        font-weight: bold;
+        font-size: 1.2em;
+      }
+      .time-stamp {
+        color: #888;
+        font-size: 0.8em;
+      }
+      .fade-out {
+        opacity: 0;
+        transform: translateX(50px);
+        transition: all 0.5s ease;
+      }
+      .call-card {
+        background: #fff3f3;
+        border-left: 5px solid #e53935;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        animation: blink 1s infinite alternate;
       }
 
-      .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out forwards;
+      @keyframes blink {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.6;
+        }
       }
-      
-      .order-card {
-          transition: transform 0.2s ease, opacity 0.2s ease;
-          will-change: transform, opacity;
+      .fade-out {
+          opacity: 0;
+          transition: opacity 0.3s ease;
       }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <h2>
+      รายการ
+      <span id="refreshingStatus">(กำลังรีเฟรช...)</span>
+    </h2>
 
-<div class="iphone-container">
-    <header class="bg-slate-800 text-white p-4 shadow-lg">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-fire-alt text-orange-400"></i>
-                <h1 class="font-bold text-lg">รายการสั่งอาหาร</h1>
-            </div>
-            <button onclick="loadKdsData()" class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center active:rotate-180 transition-all duration-500">
-                <i id="reloadIcon" class="fas fa-sync-alt text-sm"></i>
-            </button>
-        </div>
-        <div class="flex gap-4 mt-3 text-[11px] font-medium opacity-90">
-            <span id="pLabel" class="bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full">รอทำ: 0</span>
-            <span id="cLabel" class="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">กำลังทำ: 0</span>
-        </div>
-    </header>
-
-    <div class="dashboard-content" id="dashboardContent">
-        <div id="loadingKDS" class="flex flex-col items-center justify-center py-20">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-            <p class="mt-4 text-gray-400 text-xs">กำลังเชื่อมต่อห้องครัว...</p>
-        </div>
-        <div id="orderList" class="space-y-3"></div>
+    <div id="callSection" style="margin-bottom: 15px">
+      <div id="callList"></div>
     </div>
-</div>
 
-<script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?view=kitchen';
-  
-  const CALL_URL = 'https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?view=calls';
-  
-    let kdsOrders = [];
-    let lastDataSignature = ""; // เอาไว้เช็กว่าข้อมูลเปลี่ยนจริงไหม
-    let autoRefreshInterval;    // เพิ่มตัวแปรสำหรับเก็บ Interval
+    <div id="orderList" class="order-container">กำลังโหลดข้อมูล...</div>
 
-    // ฟังก์ชันเริ่มการทำงานอัตโนมัติ
-    function startAutoRefresh() {
-        // โหลดครั้งแรกทันที
-        loadKdsData();
-        loadCalls();
+    <script>
+      const WEB_APP_URL =
+        "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?view=kitchen";
+    </script>
 
-        // ตั้งเวลาให้โหลดทุก 10 วินาที (10000 มิลลิวินาที)
-        autoRefreshInterval = setInterval(loadKdsData, 10000);
-    }
-   
-    async function loadKdsData() {
-        const loading = document.getElementById('loadingKDS');
-        const list = document.getElementById('orderList');
-        const icon = document.getElementById('reloadIcon');
+    <script>
+      const statusEl = document.getElementById("refreshingStatus");
+      const container = document.getElementById("orderList");
 
-        // แสดง spinner ที่ปุ่ม reload เสมอเมื่อมีการดึงข้อมูล
-        if (icon) icon.classList.add('fa-spin');
+      let renderedOrderIds = new Set();
+      let isFirstLoad = true;
+      let updateQueue = [];
 
-        // ตรวจสอบว่าถ้ามีรายการอาหารอยู่บนจอแล้ว ไม่ต้องแสดงหน้า Loading จอขาว
-        // (จะแสดง Loading เฉพาะตอนเปิดหน้าเวปครั้งแรกที่ kdsOrders ยังว่างอยู่)
-        if (kdsOrders.length === 0) {
-            loading.classList.remove('hidden');
+      //  เรียกพนักงาน
+      let renderedCallIds = new Set();
+      let pendingCallKeys = new Set();
+      
+      async function loadCalls() {
+        try {
+          const res = await fetch(
+            "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=calls"
+          );
+
+          const data = await res.json();
+          const filtered = data.filter(item => {
+              const key = item.table + "_" + item.timestamp;
+
+              return item.status !== 'done' && !pendingCallKeys.has(key);
+          });
+
+          const callList = document.getElementById("callList");
+
+          // ✅ เคลียร์ก่อน render ใหม่
+          callList.innerHTML = "";
+          renderedCallIds.clear();
+
+          console.log("RAW DATA:", data);
+
+          filtered.sort((a, b) => b.timestamp - a.timestamp); // ใหม่อยู่บน
+
+filtered.forEach((item) => {
+  const key = item.table + "_" + item.timestamp;
+
+  if (!renderedCallIds.has(key)) {
+    const div = document.createElement("div");
+    div.className = "call-card";
+    div.onclick = () => handleCallDone(item, div);
+
+    const table = item.table;
+    const timeStr = new Date(item.timestamp).toLocaleTimeString();
+
+console.log(item);    
+    
+    // ✅ แยก type
+    const isBill = item.type === 'bill';
+    const icon = isBill ? '💵' : '🔔';
+    const label = isBill ? 'เรียกเก็บเงิน' : 'เรียกพนักงาน';
+
+    // ✅ format ราคา (กัน undefined)
+    const price = item.total_price 
+        ? Number(item.total_price).toLocaleString() 
+        : '-';
+
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        
+        <!-- ซ้าย -->
+        <div>
+          <div><strong>${icon} โต๊ะ ${table} ${label} </strong></div>
+          <div style="font-size:12px;">${timeStr}</div>
+        </div>
+
+        <!-- กลาง
+        <div style="text-align:center; font-size:12px;">
+          ${label}
+        </div>
+ -->
+        <!-- ขวา -->
+        <div style="text-align:right;">
+          ${isBill ? `<strong>${price} บาท</strong>` : ``}
+        </div>
+
+      </div>
+    `;
+
+    callList.prepend(div);
+    renderedCallIds.add(key);
+  }
+});
+        } catch (err) {
+          console.error("โหลด call ไม่สำเร็จ", err);
         }
+      }
+
+      // กดปุ่มตอบรับเรียกพนักงาน
+      function handleCallDone(item, element) {
+
+          const key = item.table + "_" + item.timestamp;
+
+          // ✅ mark ว่ากำลัง pending
+          pendingCallKeys.add(key);
+
+        element.style.pointerEvents = 'none';
+        element.classList.add('fade-out');
+        setTimeout(() => {
+            element.remove();
+        }, 300);
+
+          updateQueue.push({
+              type: 'call',
+              table: item.table,
+              timestamp: item.timestamp,
+              status: 'done'
+          });
+      }
+
+      //
+      function getNextStatus(current) {
+        if (current === "pending") return "cooking";
+        if (current === "cooking") return "done";
+        return "done";
+      }
+
+      function updateCardStyle(card, status) {
+        if (status === "pending") {
+          card.style.borderLeftColor = "#ff9800"; // ส้ม
+        } else if (status === "cooking") {
+          card.style.borderLeftColor = "#2196F3"; // น้ำเงิน
+        } else if (status === "done") {
+          card.style.borderLeftColor = "#4CAF50"; // เขียว
+        }
+      }
+      async function loadOrders() {
+        statusEl.style.display = "inline";
 
         try {
-            const response = await fetch(SCRIPT_URL);
-            const data = await response.json();
+          const response = await fetch(WEB_APP_URL);
+          const ggs_data = await response.json();
+          const data = ggs_data.filter((item) => item.status !== "done");
 
-            if (data && Array.isArray(data)) {
-                // เรียงลำดับ: เก่าสุดอยู่บน -> ใหม่สุดอยู่ล่าง
-                kdsOrders = data.sort((a, b) => {
-                    const timeA = a.timestamp || 0;
-                    const timeB = b.timestamp || 0;
-                    return timeA - timeB;
-                });
-                renderKDS();
+          // 1. เรียงลำดับจากเก่าสุดไปใหม่สุด (เพื่อให้รายการใหม่ไปต่อท้ายสุดเสมอ)
+          data.sort((a, b) => a.timestamp - b.timestamp);
+
+          // 2. จัดการหน้าจอครั้งแรก
+          if (isFirstLoad) {
+            container.innerHTML = "";
+            if (data.length === 0) {
+              container.innerHTML = "ไม่มีรายการค้าง";
             }
+          }
+
+          // 3. วนลูปด้วย standard for loop เพื่อความชัวร์ในการทำงานต่อเนื่อง
+          for (let i = 0; i < data.length; i++) {
+            const item = data[i];
+
+            // สร้าง Unique Key โดยการรวม ID และ ชื่อเมนู (ป้องกันกรณี ID ซ้ำแต่คนละเมนู)
+            const timeStr = new Date(item.timestamp).toLocaleTimeString();
+            const itemKey = item.order_id + "_" + item.menu + "_" + timeStr;
+
+            // ตรวจสอบว่า Key นี้ยังไม่เคยถูกวาด
+            if (!renderedOrderIds.has(itemKey)) {
+              if (container.innerText === "ไม่มีรายการค้าง") {
+                container.innerHTML = "";
+              }
+
+              const card = createOrderCard(item);
+              container.appendChild(card);
+
+              // บันทึก Unique Key ลงใน Set
+              renderedOrderIds.add(itemKey);
+            }
+          }
+
+          // 4. เปลี่ยนสถานะหลังจากมั่นใจว่า loop ข้างบนทำงานเสร็จหมดแล้ว
+          isFirstLoad = false;
         } catch (error) {
-            console.error("Load Error:", error);
-            // แสดง error เฉพาะตอนที่ไม่มีข้อมูลแสดงอยู่เลย
-            if (kdsOrders.length === 0) {
-                list.innerHTML = `<p class="text-center py-10 text-red-400 text-xs">เชื่อมต่อไม่ได้ กรุณาลองใหม่</p>`;
-            }
+          console.error("Error:", error);
+          if (isFirstLoad)
+            container.innerHTML = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
         } finally {
-            // ปิดหน้า Loading เสมอหลังโหลดเสร็จ
-            loading.classList.add('hidden');
-            if (icon) {
-                setTimeout(() => icon.classList.remove('fa-spin'), 500);
-            }
+          // ซ่อนสถานะรีเฟรช
+          setTimeout(() => {
+            statusEl.style.display = "none";
+          }, 500);
         }
-    }
-  
-     function renderKDS() {
-        const list = document.getElementById('orderList');
+      }
 
-        // สร้าง "ลายนิ้วมือ" ของข้อมูลปัจจุบัน (รวม ID และ Status)
-        const currentSignature = JSON.stringify(kdsOrders.map(o => `${o.order_id}-${o.status}`));
+      function createOrderCard(item) {
+        const card = document.createElement("div");
+        card.className = "order-card";
+        card.onclick = () => {
+          if (item.status === "done") return;
 
-        // ถ้าข้อมูลเหมือนเดิมเป๊ะ ไม่ต้องทำอะไรต่อ (ป้องกันจอสะดุด)
-        if (currentSignature === lastDataSignature) {
-            return; 
-        }
-        
-        // บันทึกค่าใหม่ไว้ใช้เช็กครั้งหน้า
-        lastDataSignature = currentSignature;
-        
-        list.innerHTML = '';
-        
-        let p = 0, c = 0;
+          const nextStatus = getNextStatus(item.status);
 
-        if (!kdsOrders || kdsOrders.length === 0) {
-            list.innerHTML = `<p class="text-center py-20 text-gray-400 text-xs font-light">ยังไม่มีออเดอร์ใหม่</p>`;
-            updateLabels(0, 0);
-            return;
-        }
+          // ✅ เปลี่ยน UI ทันที
+          item.status = nextStatus;
+          card.querySelector("strong").innerText = nextStatus;
+          updateCardStyle(card, nextStatus);
 
-        kdsOrders.forEach((order, index) => {
-            if (order.status === 'pending') p++;
-            if (order.status === 'cooking') c++;            
-            if (order.status === 'ready') return;
+          // ✅ เก็บเข้าคิวแทนยิงทันที
+          updateQueue.push({
+            order_id: item.order_id,
+            menu: item.menu,
+            status: nextStatus,
+          });
 
-            const card = document.createElement('div');
-            //card.className = `order-card bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between animate-fadeIn status-${order.status}`;
-            card.className = `order-card animate-fadeIn bg-white rounded-xl p-4 mb-3 border-l-4 ${order.status === 'pending' ? 'border-orange-400' : 'border-blue-400'} shadow-sm flex items-center gap-4`;
-            
-            card.onclick = () => updateStatus(order);
+          // fade out ถ้า done
+          if (nextStatus === "done") {
+            card.style.pointerEvents = "none";
 
-            card.innerHTML = `
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${order.status === 'pending' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}">
-                            โต๊ะ ${order.table_no || '-'}
-                        </span>
-                        <span class="text-gray-400 text-[9px]">#${order.order_id || '000'}</span>
-                    </div>
-                    <h3 class="font-bold text-gray-800 text-sm">${order.menu}</h3>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-2xl font-black text-slate-700">${order.qty}</span>
-                    <div class="text-right">
-                        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 text-slate-400">
-                             <i class="fas ${order.status === 'pending' ? 'fa-clock' : 'fa-fire-burner'}"></i>
-                        </div>
-                    </div>
-                </div>
-            `;
-            list.appendChild(card);
+            setTimeout(() => {
+              card.classList.add("fade-out");
+              setTimeout(() => card.remove(), 500);
+            }, 300);
+          }
+        };
+
+        const timeStr = new Date(item.timestamp).toLocaleTimeString();
+        card.innerHTML = `
+            <div class="order-info">
+                <span class="menu-name">${item.menu} (x${item.qty})</span>
+                <span class="time-stamp">${timeStr}</span>
+            </div>
+            <div>โต๊ะ: ${item.table_no} | สถานะ: <strong>${item.status}</strong></div>
+        `;
+        updateCardStyle(card, item.status);
+        return card;
+      }
+
+async function flushUpdates() {
+    if (updateQueue.length === 0) return;
+
+    const queueCopy = [...updateQueue];
+    updateQueue = [];
+
+    try {
+        await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'batchUpdate',
+                updates: queueCopy
+            })
         });
 
-        updateLabels(p, c);
-    }
-
-    async function updateStatus(order) {
-        let nextStatus = '';
-
-        // 1. กำหนด Logic การเปลี่ยนสถานะ
-        if (order.status === 'pending') {
-            nextStatus = 'cooking';
-        } else if (order.status === 'cooking') {
-            nextStatus = 'ready';
-        } else {
-            return; // ถ้าเป็น ready อยู่แล้วไม่ต้องทำอะไร
-        }
-
-        // เก็บสถานะเดิมไว้เผื่อกรณี Error จะได้ย้อนกลับ (Rollback) ได้
-        const originalStatus = order.status;
-
-        // 2. แสดง Feedback ที่หน้าจอทันที (Optimistic UI Update)
-        order.status = nextStatus;
-        renderKDS();
-
-        try {
-            // 3. ส่งข้อมูลไปอัปเดตที่ Google Sheets ผ่าน URL Parameters
-            // วิธีนี้จะช่วยเลี่ยงปัญหา CORS และทำให้ Apps Script รับค่าจาก e.parameter ได้แน่นอน
-            const updateUrl = `${SCRIPT_URL}&action=updateStatus&order_id=${encodeURIComponent(order.order_id)}&new_status=${nextStatus}`;
-
-            await fetch(updateUrl, {
-                method: 'GET',
-                mode: 'no-cors' // จำเป็นสำหรับ Google Apps Script เพื่อไม่ให้ติดบล็อก Browser
-            });
-
-            console.log(`Order ${order.order_id} updated to ${nextStatus}`);
-
-        } catch (error) {
-            console.error("Update Error:", error);
-            // กรณีเกิด Error ให้คืนค่าสถานะเดิมบนหน้าจอ และแจ้งเตือนผู้ใช้
-            order.status = originalStatus;
-            renderKDS();
-            alert("ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
-        }
-    }
-
-    function updateLabels(p, c) {
-        document.getElementById('pLabel').innerText = `รอทำ: ${p}`;
-        document.getElementById('cLabel').innerText = `กำลังทำ: ${c}`;
-    }
-
-  
-let lastCallTime = "";
-
-async function loadCalls() {
-    try {
-        const res = await fetch(CALL_URL);
-        const data = await res.json();
-
-        if (!data.length) return;
-
-        const lastCall = data[data.length - 1];
-
-        if (lastCall.time === lastCallTime) return;
-        lastCallTime = lastCall.time;
-
-        // 🔥 แยกประเภท
-        if (lastCall.type === "bill") {
-            showBillAlert(lastCall.table, lastCall.total);
-        } else {
-            showCallAlert(lastCall.table);
-        }
+        // ✅ เพิ่มตรงนี้ 👇
+        queueCopy.forEach(update => {
+            if (update.type === 'call') {
+                const key = update.table + "_" + update.timestamp;
+                pendingCallKeys.delete(key);
+            }
+        });
 
     } catch (err) {
-        console.error(err);
+        console.error('Batch update failed:', err);
+
+        // ❗ rollback
+        updateQueue = [...queueCopy, ...updateQueue];
     }
 }
+      
+      setInterval(flushUpdates, 10000);
+      setInterval(loadCalls, 10000);
 
-function showBillAlert(table, total) {
-    alert("💰 โต๊ะ " + table + " ขอเช็คบิล\nยอดรวม: ฿" + total);
-}
-  
-    // เริ่มโหลดข้อมูล
-    startAutoRefresh();
-  
-</script>
+      loadOrders();
 
-</body>
+      setInterval(loadOrders, 10000); // รีเฟรชทุก 10 วินาที
+    </script>
+  </body>
 </html>
