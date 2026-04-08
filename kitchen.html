@@ -354,7 +354,7 @@ console.log(item);
                 <span class="menu-name">${item.menu} (x${item.qty})</span>
                 <span class="time-stamp">${timeStr}</span>
             </div>
-            <div>โต๊ะ: ${item.table_no} | สถานะ: <strong>${item.status}</strong></div>
+            <div class="order-status-row">โต๊ะ: ${item.table_no} | สถานะ: <strong>${item.status}</strong></div>
         `;
         updateCardStyle(card, item.status);
         return card;
