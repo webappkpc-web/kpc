@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ครัวจันทร์เพ็ญ</title>
+    <title>ครัวจันทร์เพ็ญ v1.6</title>
     <base target="_top" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -376,6 +376,22 @@
           padding: 12px 16px;
         }
       }
+
+      .spinner {
+        width: 30px;
+        height: 30px;
+        border: 4px solid #ddd;
+        border-top: 4px solid #22c55e;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: auto;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
 
@@ -673,6 +689,7 @@
           <button
             onclick="confirmBill(this)"
             class="w-1/2 bg-green-500 text-white py-2 rounded-lg"
+            type="button"
           >
             เช็คบิล
           </button>
@@ -702,6 +719,26 @@
       </div>
     </div>
 
+    <div id="conBillModal" class="modal-overlay" onclick="closeConBill(event)">
+      <div
+        class="modal-container p-6 text-center"
+        onclick="event.stopPropagation()"
+      >
+        <div class="text-4xl mb-3">💵</div>
+
+        <h2 class="text-lg font-bold mb-2">คุณแจ้งเช็คบิลแล้ว</h2>
+
+        <p class="text-gray-600 text-sm">กรุณารอพนักงานสักครู่นะคะ 😊</p>
+
+        <button
+          onclick="closeAlert()"
+          class="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg"
+        >
+          ตกลง
+        </button>
+      </div>
+    </div>
+
     <div
       id="confirmBillModal"
       class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]"
@@ -721,6 +758,7 @@
           </button>
           <button
             id="confirmBillBtn"
+            type="button"
             class="w-1/2 bg-green-500 text-white py-2 rounded-lg"
           >
             ยืนยัน
@@ -731,8 +769,44 @@
 
     <div
       id="toast"
-      class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg text-sm z-50"
+      style="
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: black;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        z-index: 9999;
+      "
     ></div>
+
+    <div
+      id="loadingOverlay"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 20px;
+          border-radius: 10px;
+          text-align: center;
+        "
+      >
+        <div class="spinner" style="margin-bottom: 10px"></div>
+        <div>รอสักครู่...</div>
+      </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toastMessage" class="toast-notification">
@@ -748,6 +822,7 @@
       let currentQty = 1;
       let cart = [];
       let cardQuantities = {};
+      let cookingNotified = false;
 
       const container = document.getElementById("content");
       const categoryBar = document.getElementById("categoryBar");
@@ -780,9 +855,6 @@
 
       // แสดงผล
       document.getElementById("table").innerText = table;
-
-      console.log("TABLE:", table);
-      console.log("TABLE CODE:", tableCode);
 
       document.getElementById("table").innerText = table;
 
@@ -967,11 +1039,10 @@
 
       function showFinalConfirm() {
         if (cart.length === 0) {
-          // alert("ยังไม่มีรายการอาหารในตะกร้าครับ 😊");
           showToast(
-            "ยังไม่มีรายการอาหารในตะกร้าค่ะ 😊",
+            "ยังไม่มีรายการอาหารในตะกร้าค่ะ 😊 10-4",
             "fa-info-circle",
-            "#000099"
+            "#000999"
           );
           return;
         }
@@ -1102,7 +1173,6 @@
           );
 
           const result = await response.json();
-          //alert("🚀 ส่งเข้าครัวเรียบร้อย!");
           showToast("ส่งเข้าครัวเรียบร้อย! 🚀 ", "fa-info-circle", "#000099");
           cart = [];
           updateFooter();
@@ -1255,6 +1325,32 @@
         }
       }
 
+      function getStatusLabel(status) {
+          switch (status) {
+              case "pending":
+                  return "🕒 รอรับออเดอร์";
+              case "cooking":
+                  return "🍳 กำลังเตรียม";
+              case "done":
+                  return "✅ เสร็จแล้ว";
+              default:
+                  return "";
+          }
+      }
+      
+      function getStatusColor(status) {
+          switch (status) {
+              case "pending":
+                  return "text-gray-400";
+              case "cooking":
+                  return "text-yellow-500";
+              case "done":
+                  return "text-green-500";
+              default:
+                  return "";
+          }
+      }      
+
       async function viewAllOrders() {
         const modal = document.getElementById("yourOrdersModal");
         const list = document.getElementById("yourOrdersList");
@@ -1268,8 +1364,7 @@
 
         try {
           const res = await fetch(
-            "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=allOrders&table=" +
-              table
+            "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec?mode=allOrders&table=" + table
           );
 
           const data = await res.json();
@@ -1286,12 +1381,18 @@
             const row = document.createElement("div");
             row.className = "flex justify-between bg-gray-50 p-2 rounded";
 
+            const statusText = getStatusLabel(item.status);
+            const statusColor = getStatusColor(item.status);
+            
             row.innerHTML = `
                 <div>
                     <div>${item.menu}</div>
                     <div class="text-xs text-gray-400">ลูกค้า: ${item.session}</div>
                 </div>
-                <div class="font-bold">x${item.qty}</div>
+                <div class="text-right">
+                    <div class="font-bold">x${item.qty}</div>
+                    <div class="text-xs mt-1 ${statusColor}">${statusText}</div>
+                </div>
             `;
 
             list.appendChild(row);
@@ -1313,8 +1414,6 @@
 
         const table = document.getElementById("table").innerText;
         tableDiv.innerText = table;
-
-        console.log("TABLE:", table);
 
         list.innerHTML = "กำลังโหลด...";
         modal.classList.add("active");
@@ -1364,25 +1463,25 @@
       }
       //  viewBill
 
+      /*  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec";   */
+
       //  confirmBill
-
-      /*
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec";        
-   */
-
       function confirmBill(btn) {
         const WEB_APP_URL =
           "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec";
-
-        document.getElementById("billModal").classList.remove("active");
-
         openConfirmBill(() => {
           closeConfirmBill();
 
-          const table = document.getElementById("table").innerText;
+          const table = document.getElementById("billTable").innerText;
+          const totalDiv = document.getElementById("billTotal");
+          const loading = document.getElementById("loadingOverlay");
 
+          // 🔒 กันกดซ้ำ
           btn.disabled = true;
           btn.innerText = "กำลังส่ง...";
+
+          // 🔄 แสดง spinner
+          loading.style.display = "flex";
 
           fetch(WEB_APP_URL, {
             method: "POST",
@@ -1393,15 +1492,26 @@
             }),
           })
             .then(() => {
+              loading.style.display = "none";
+
               closeBill();
-              showToast("💵 เรียกเช็คบิลแล้ว");
+
+              // ✅ ใช้ toast ของคุณ
+              //showToast("💵 เรียกเช็คบิลแล้ว", "fa-check-circle", "#16a34a");
+              callConBill();
+
               btn.disabled = false;
               btn.innerText = "เช็คบิล";
+              totalDiv.innerText = "";
             })
             .catch((err) => {
               console.error(err);
-              showToast("❌ ส่งไม่สำเร็จ");
 
+              loading.style.display = "none";
+
+              showToast("❌ ส่งไม่สำเร็จ", "fa-times-circle", "#dc2626");
+
+              // 🔁 rollback ปุ่ม
               btn.disabled = false;
               btn.innerText = "เช็คบิล";
             });
@@ -1438,6 +1548,24 @@
         }
       }
 
+      function callConBill() {
+        // 🔥🔥🔥🔥🔥🔥 ตัวอย่างจาก bellModal
+        // popup เดิม
+        const modal = document.getElementById("conBillModal");
+        modal.classList.add("active");
+
+        // ปิด auto
+        setTimeout(() => {
+          modal.classList.remove("active");
+        }, 3000);
+      }
+
+      function closeConBill(e) {
+        if (!e || e.target === e.currentTarget) {
+          document.getElementById("conBillModal").classList.remove("active");
+        }
+      }
+
       function closeUserMenu() {
         document.getElementById("userMenu").classList.add("hidden");
       }
@@ -1462,18 +1590,37 @@
         document.getElementById("confirmBillModal").classList.add("hidden");
       }
 
-      function showToast(msg) {
-        const toast = document.getElementById("toast");
-        toast.innerText = msg;
+      async function checkCookingStatus() {
+        const WEB_APP_URL =
+          "https://script.google.com/macros/s/AKfycbzXuk7TTQ_NhOfvQyb-uwHSAc8GmsVL1qBVH5aFjbieZ01b30DQ1I4Q-288AdAKdCBh/exec";
 
-        toast.classList.remove("hidden");
-        toast.style.opacity = "1";
+        try {
+          const table = document.getElementById("table").innerText;
 
-        setTimeout(() => {
-          toast.style.opacity = "0";
-          setTimeout(() => toast.classList.add("hidden"), 300);
-        }, 2000);
+          const res = await fetch(
+            WEB_APP_URL + "?mode=allOrders&table=" + table
+          );
+
+          const data = await res.json();
+          const hasCooking = data.some((item) => item.status === "cooking");
+          
+          console.log("hasCooking::", hasCooking);
+                   
+          if (hasCooking) {
+            showToast(
+              "🍳 รายการอาหารของคุณกำลังเตรียม กรุณารอสักครู่",
+              "fa-clock",
+              "#f59e0b"
+            );
+          }
+
+        } catch (err) {
+          console.error("checkCookingStatus error:", err);
+        }
       }
+
+      checkCookingStatus();
+      setInterval(checkCookingStatus, 60000);
 
       loadData();
     </script>
