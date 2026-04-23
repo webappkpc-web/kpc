@@ -2,7 +2,7 @@
 <html>
 <body>
     
-    <h1>แจ้งซ่อม</h1>
+    <h1>แจ้งซ่อม 1353 </h1>
     <button id="btn-computer">Computer (50)</button>
     <button id="btn-printer">Printer (45)</button>
 
@@ -26,6 +26,17 @@
       const app = initializeApp(firebaseConfig);
       const analytics = getAnalytics(app);
       const db = getDatabase(app);
+
+      // 4. ฟังก์ชันส่งข้อมูลออเดอร์
+      document.getElementById('btn-computer').addEventListener('click', () => {
+           sendOrder('Computer', 50);
+           console.log("Click:: computer");
+      });
+    
+      document.getElementById('btn-printer').addEventListener('click', () => {
+          sendOrder('Printer', 45);
+      });
+        
     </script>
 </body>
 </html>
