@@ -19,8 +19,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
-
+        //import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+        
+import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
         // 1. ใส่ Config เดิมของคุณ
         const firebaseConfig = {
             apiKey: "AIzaSyBw4pqdd_yiir1PYue0YGWQsjzWXA9f0u8",
@@ -45,17 +46,38 @@
 
             if (data) {
                 // วนลูปแสดงข้อมูลที่ได้จาก Firebase
-                Object.keys(data).forEach((id) => {
-                    const order = data[id];
-                    orderList.innerHTML += `
-                        <div class="order-card">
-                            <p><strong>อุปกรณ์:</strong> ${order.hardwareName}</p>
-                            <p><strong>ราคา:</strong> ${order.price} บาท</p>
-                            <p><strong>เวลา:</strong> ${order.time}</p>
-                            <small>ID: ${id}</small>
-                        </div>
-                    `;
-                });
+// วนลูปแสดงข้อมูล
+Object.keys(data).forEach((id) => {
+    const order = data[id];
+    
+    // สร้าง div ของ card
+    const card = document.createElement("div");
+    card.className = "order-card";
+    card.innerHTML = `
+        <p><strong>อุปกรณ์:</strong> ${order.hardwareName}</p>
+        <p><strong>ราคา:</strong> ${order.price} บาท</p>
+        <p><strong>เวลา:</strong> ${order.time}</p>
+    `;
+
+    // สร้างปุ่มลบ
+    const deleteBtn = document.createElement("button");
+    deleteBtn.innerText = "ลบรายการนี้";
+    deleteBtn.style.backgroundColor = "#ff4d4d";
+    deleteBtn.style.color = "white";
+    deleteBtn.style.border = "none";
+    deleteBtn.style.padding = "5px 10px";
+    deleteBtn.style.cursor = "pointer";
+
+    // ใส่คำสั่งลบเมื่อกดปุ่ม
+    deleteBtn.onclick = () => {
+        if (confirm("คุณต้องการลบรายการนี้ใช่ไหม?")) {
+            remove(ref(db, 'orders/' + id));
+        }
+    };
+
+    card.appendChild(deleteBtn);
+    orderList.appendChild(card);
+});
             } else {
                 orderList.innerHTML = "ยังไม่มีรายการแจ้งซ่อม";
             }
