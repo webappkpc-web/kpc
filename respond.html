@@ -2,27 +2,174 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>ระบบจัดการการแจ้งซ่อม (Admin)</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin: 0 0 20px 0;
+            color: #333;
+            text-align: center;
+            padding: 10px 0;
+        }
+
         .order-card {
-            border: 1px solid #ddd;
-            padding: 5px;
-            margin-bottom: 5px;
-            border-radius: 8px;
-            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            padding: 20px 16px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.1s ease;
+        }
+
+        .order-card strong {
+            font-size: 18px;
+            color: #555;
+            display: inline-block;
+            min-width: 70px;
+        }
+
+        .order-card br {
+            display: none;
+        }
+
+        .order-card > div {
+            margin-bottom: 12px;
+            font-size: 18px;
+            line-height: 1.5;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+        }
+
+        .order-card > div:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .order-card .label {
+            font-weight: bold;
+            color: #2c3e50;
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .order-card .value {
+            flex: 1;
+            color: #333;
+            word-break: break-word;
+        }
+
+        button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
+            transition: background-color 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            background-color: #b02a37;
+            transform: scale(0.98);
+        }
+
+        #admin-order-list {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .loading, .empty-state {
+            text-align: center;
+            font-size: 18px;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 12px;
+            color: #666;
+        }
+
+        /* ปรับแต่งการแสดงผลแบบบรรทัดเดียวในมือถือ */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            h2 {
+                font-size: 26px;
+            }
+
+            .order-card {
+                padding: 18px 14px;
+            }
+
+            .order-card .label {
+                width: 75px;
+                font-size: 16px;
+            }
+
+            .order-card .value {
+                font-size: 17px;
+            }
+
+            button {
+                padding: 16px 20px;
+                font-size: 18px;
+            }
+        }
+
+        /* สำหรับหน้าจอที่กว้างขึ้น */
+        @media (min-width: 768px) {
+            .order-card {
+                padding: 24px 20px;
+            }
+
+            button {
+                width: auto;
+                padding: 12px 24px;
+                margin-top: 0;
+            }
+
+            .card-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .info-group {
+                flex: 1;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <h2>รายการแจ้งซ่อมทั้งหมด</h2>
+    <h2>📋 รายการแจ้งซ่อมทั้งหมด</h2>
     <div id="admin-order-list">กำลังโหลดข้อมูล...</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        //import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
-        
-import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
-        // 1. ใส่ Config เดิมของคุณ
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyBw4pqdd_yiir1PYue0YGWQsjzWXA9f0u8",
             authDomain: "rtemis-project.firebaseapp.com",
@@ -33,55 +180,71 @@ import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/fireb
             databaseURL: "https://rtemis-project-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
 
-        // 2. เริ่มต้นการทำงาน
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app, firebaseConfig.databaseURL);
         const ordersRef = ref(db, 'orders');
 
-        // 3. ฟังข้อมูลแบบ Realtime
         onValue(ordersRef, (snapshot) => {
             const data = snapshot.val();
             const orderList = document.getElementById('admin-order-list');
-            orderList.innerHTML = ""; // ล้างข้อมูลเก่า
+            orderList.innerHTML = "";
 
             if (data) {
-                // วนลูปแสดงข้อมูลที่ได้จาก Firebase
-// วนลูปแสดงข้อมูล
-Object.keys(data).forEach((id) => {
-    const order = data[id];
-    
-    // สร้าง div ของ card
-    const card = document.createElement("div");
-    card.className = "order-card";
-    card.innerHTML = `
-        <strong>อุปกรณ์:</strong> ${order.hardwareName}<br>
-        <strong>ราคา:</strong> ${order.price} บาท<br>
-        <strong>เวลา:</strong> ${order.time}
-    `;
+                Object.keys(data).forEach((id) => {
+                    const order = data[id];
+                    
+                    const card = document.createElement("div");
+                    card.className = "order-card";
+                    
+                    // สร้างโครงสร้าง HTML ที่อ่านง่ายขึ้น
+                    card.innerHTML = `
+                        <div>
+                            <span class="label">🖥️ อุปกรณ์:</span>
+                            <span class="value">${escapeHtml(order.hardwareName)}</span>
+                        </div>
+                        <div>
+                            <span class="label">💰 ราคา:</span>
+                            <span class="value">${formatNumber(order.price)} บาท</span>
+                        </div>
+                        <div>
+                            <span class="label">⏱️ เวลา:</span>
+                            <span class="value">${escapeHtml(order.time)}</span>
+                        </div>
+                    `;
 
-    // สร้างปุ่มลบ
-    const deleteBtn = document.createElement("button");
-    deleteBtn.innerText = "ลบ";
-    deleteBtn.style.backgroundColor = "#ff4d4d";
-    deleteBtn.style.color = "white";
-    deleteBtn.style.border = "none";
-    deleteBtn.style.padding = "5px 5px";
-    deleteBtn.style.cursor = "pointer";
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.innerText = "🗑️ ลบรายการ";
+                    
+                    deleteBtn.onclick = () => {
+                        if (confirm("คุณต้องการลบรายการนี้ใช่ไหม?")) {
+                            remove(ref(db, 'orders/' + id));
+                        }
+                    };
 
-    // ใส่คำสั่งลบเมื่อกดปุ่ม
-    deleteBtn.onclick = () => {
-        if (confirm("คุณต้องการลบรายการนี้ใช่ไหม?")) {
-            remove(ref(db, 'orders/' + id));
-        }
-    };
-
-    card.appendChild(deleteBtn);
-    orderList.appendChild(card);
-});
+                    card.appendChild(deleteBtn);
+                    orderList.appendChild(card);
+                });
             } else {
-                orderList.innerHTML = "ยังไม่มีรายการแจ้งซ่อม";
+                orderList.innerHTML = '<div class="empty-state">📭 ยังไม่มีรายการแจ้งซ่อม</div>';
             }
         });
+
+        // ฟังก์ชันป้องกัน XSS
+        function escapeHtml(str) {
+            if (!str) return '-';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // ฟังก์ชันจัดรูปแบบตัวเลข
+        function formatNumber(num) {
+            if (num === undefined || num === null) return '0';
+            return Number(num).toLocaleString('th-TH');
+        }
     </script>
 </body>
 </html>
