@@ -36,6 +36,16 @@
       document.getElementById('btn-printer').addEventListener('click', () => {
           sendOrder('Printer', 45);
       });
+
+      function sendOrder(hardware, price) {         
+        const orderRef = ref(db, 'orders');
+        push(orderRef, {
+            hardwareName: hardware,
+            price: price,
+            time: new Date().toLocaleString()
+        }).then(() => {
+            document.getElementById('status').innerText = "แจ้งซ่อม " + hardware + " สำเร็จ!";
+        });
         
     </script>
 </body>
