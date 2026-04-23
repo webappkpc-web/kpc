@@ -14,7 +14,7 @@
     </style>
 </head>
 <body>
-    <h1>รายการแจ้งซ่อมทั้งหมด</h1>
+    <h2>รายการแจ้งซ่อมทั้งหมด</h2>
     <div id="admin-order-list">กำลังโหลดข้อมูล...</div>
 
     <script type="module">
@@ -54,18 +54,18 @@ Object.keys(data).forEach((id) => {
     const card = document.createElement("div");
     card.className = "order-card";
     card.innerHTML = `
-        <p><strong>อุปกรณ์:</strong> ${order.hardwareName}</p>
-        <p><strong>ราคา:</strong> ${order.price} บาท</p>
-        <p><strong>เวลา:</strong> ${order.time}</p>
+        <strong>อุปกรณ์:</strong> ${order.hardwareName}<br>
+        <strong>ราคา:</strong> ${order.price} บาท<br>
+        <strong>เวลา:</strong> ${order.time}
     `;
 
     // สร้างปุ่มลบ
     const deleteBtn = document.createElement("button");
-    deleteBtn.innerText = "ลบรายการนี้";
+    deleteBtn.innerText = "ลบ";
     deleteBtn.style.backgroundColor = "#ff4d4d";
     deleteBtn.style.color = "white";
     deleteBtn.style.border = "none";
-    deleteBtn.style.padding = "5px 10px";
+    deleteBtn.style.padding = "5px 5px";
     deleteBtn.style.cursor = "pointer";
 
     // ใส่คำสั่งลบเมื่อกดปุ่ม
