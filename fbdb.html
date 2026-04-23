@@ -12,8 +12,8 @@
 
     <!-- 1. โหลด Firebase SDK -->
     <script type="module">
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, push } from "https://gstatic.com";
+        import { initializeApp } from "firebase/app";
+        import { getAnalytics } from "firebase/analytics";
 
         // 2. ใส่ Config ที่ก๊อปมาจากข้อ 1
         const firebaseConfig = {
@@ -28,6 +28,7 @@
 
         // 3. เริ่มต้นการทำงาน
         const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
         const db = getDatabase(app);
 
         // 4. ฟังก์ชันส่งข้อมูลออเดอร์
@@ -41,14 +42,14 @@
         });
 
         // ฟังก์ชันส่งข้อมูล (ไม่ต้องมี window. นำหน้าแล้ว)
-        function sendOrder(hardware, price) {         
+        function sendOrder(menu, price) {         
             const orderRef = ref(db, 'orders');
             push(orderRef, {
-                hardwareName: hardware,
+                menuName: menu,
                 price: price,
                 time: new Date().toLocaleString()
             }).then(() => {
-                document.getElementById('status').innerText = "แจ้งซ่อม " + hardware + " สำเร็จ!";
+                document.getElementById('status').innerText = "แจ้งซ่อม " + menu + " สำเร็จ!";
             });
         }      
     </script>
