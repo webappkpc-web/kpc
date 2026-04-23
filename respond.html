@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ระบบจัดการการแจ้งซ่อม (Admin)</title>
+    <style>
+        .order-card {
+            border: 1px solid #ddd;
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>รายการแจ้งซ่อมทั้งหมด</h1>
+    <div id="admin-order-list">กำลังโหลดข้อมูล...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        // 1. ใส่ Config เดิมของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyBw4pqdd_yiir1PYue0YGWQsjzWXA9f0u8",
+            authDomain: "rtemis-project.firebaseapp.com",
+            projectId: "rtemis-project",
+            storageBucket: "rtemis-project.firebasestorage.app",
+            messagingSenderId: "677079483742",
+            appId: "1:677079483742:web:8078890592dc7cbb233bcf",
+            databaseURL: "https://rtemis-project-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        // 2. เริ่มต้นการทำงาน
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app, firebaseConfig.databaseURL);
+        const ordersRef = ref(db, 'orders');
+
+        // 3. ฟังข้อมูลแบบ Realtime
+        onValue(ordersRef, (snapshot) => {
+            const data = snapshot.val();
+            const orderList = document.getElementById('admin-order-list');
+            orderList.innerHTML = ""; // ล้างข้อมูลเก่า
+
+            if (data) {
+                // วนลูปแสดงข้อมูลที่ได้จาก Firebase
+                Object.keys(data).forEach((id) => {
+                    const order = data[id];
+                    orderList.innerHTML += `
+                        <div class="order-card">
+                            <p><strong>อุปกรณ์:</strong> ${order.hardwareName}</p>
+                            <p><strong>ราคา:</strong> ${order.price} บาท</p>
+                            <p><strong>เวลา:</strong> ${order.time}</p>
+                            <small>ID: ${id}</small>
+                        </div>
+                    `;
+                });
+            } else {
+                orderList.innerHTML = "ยังไม่มีรายการแจ้งซ่อม";
+            }
+        });
+    </script>
+</body>
+</html>
