@@ -1,57 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>แจ้งซ่อม</title>
-</head>
 <body>
-    <h1>แจ้งซ่อม</h1>
-    <button id="btn-computer">Computer (50)</button>
-    <button id="btn-printer">Printer (45)</button>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+      import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js"; 
+            
+      // 2. ใส่ Config ที่ก๊อปมาจากข้อ 1
+      const firebaseConfig = {
+        apiKey: "AIzaSyBw4pqdd_yiir1PYue0YGWQsjzWXA9f0u8",
+        authDomain: "rtemis-project.firebaseapp.com",
+        projectId: "rtemis-project",
+        storageBucket: "rtemis-project.firebasestorage.app",
+        messagingSenderId: "677079483742",
+        appId: "1:677079483742:web:8078890592dc7cbb233bcf",
+        measurementId: "G-5ZJYYP3J5H"
+      };
 
-    <p id="status">Your status bar.</p>
-
-    <!-- 1. โหลด Firebase SDK -->
-    <script type="module">// แก้ไขบรรทัด import ในโค้ดของคุณเป็นแบบนี้ครับ
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
-
-        // 2. ใส่ Config ที่ก๊อปมาจากข้อ 1
-        const firebaseConfig = {
-          apiKey: "AIzaSyBw4pqdd_yiir1PYue0YGWQsjzWXA9f0u8",
-          authDomain: "rtemis-project.firebaseapp.com",
-          projectId: "rtemis-project",
-          storageBucket: "rtemis-project.firebasestorage.app",
-          messagingSenderId: "677079483742",
-          appId: "1:677079483742:web:8078890592dc7cbb233bcf",
-          measurementId: "G-5ZJYYP3J5H"
-        };
-
-        // 3. เริ่มต้นการทำงาน
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const db = getDatabase(app);
-
-        // 4. ฟังก์ชันส่งข้อมูลออเดอร์
-        document.getElementById('btn-computer').addEventListener('click', () => {
-            sendOrder('Computer', 50);
-            console.log("Click:: computer");
-        });
-
-        document.getElementById('btn-printer').addEventListener('click', () => {
-            sendOrder('Printer', 45);
-        });
-
-        // ฟังก์ชันส่งข้อมูล (ไม่ต้องมี window. นำหน้าแล้ว)
-        function sendOrder(menu, price) {         
-            const orderRef = ref(db, 'orders');
-            push(orderRef, {
-                menuName: menu,
-                price: price,
-                time: new Date().toLocaleString()
-            }).then(() => {
-                document.getElementById('status').innerText = "แจ้งซ่อม " + menu + " สำเร็จ!";
-            });
-        }      
+      // 3. เริ่มต้นการทำงาน
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const db = getDatabase(app);
     </script>
 </body>
 </html>
