@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Firebase Firestore Table</title>
+    <style>
+
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h3>เพิ่มข้อมูลผู้ใช้งาน</h3>
+      <input type="text" id="fname" placeholder="First Name" />
+      <input type="text" id="lname" placeholder="Last Name" />
+      <input type="text" id="born" placeholder="เกิดปี" />
+
+      <button id="btnSave">บันทึกข้อมูล</button>
+      <button id="btnCancel" style="display: none; background-color: #6c757d">
+        ยกเลิกการแก้ไข
+      </button>
+
+      <div id="status" style="margin-top: 10px; font-size: 0.9em; color: #555">
+        Ready
+      </div>
+    </div>
+
+    <div class="container">
+      <h2>รายชื่อผู้ใช้งาน (จาก Firebase)</h2>
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Born</th>
+            <th>...</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="3">กำลังโหลดข้อมูล...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        onSnapshot,
+        query,
+        deleteDoc,
+        doc,
+        updateDoc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      // 1. ตั้งค่า Firebase (ประกาศแค่รอบเดียว)
+      const firebaseConfig = {
+        apiKey: "AIzaSyDH3STq0qmsjhkuRa0TtlUD61O9YAumhwI",
+        authDomain: "webapp-kpc.firebaseapp.com",
+        projectId: "webapp-kpc",
+        storageBucket: "webapp-kpc.firebasestorage.app",
+        messagingSenderId: "119949179726",
+        appId: "1:119949179726:web:1992af76d4acce8d1e7c1f",
+        measurementId: "G-PB69HW4N3Q",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      // UI Elements
+      const tableBody = document.getElementById("tableBody");
+      const btnSave = document.getElementById("btnSave");
+      const btnCancel = document.getElementById("btnCancel");
+      const fNameInput = document.getElementById("fname");
+      const lNameInput = document.getElementById("lname");
+      const bornInput = document.getElementById("born");
+
+      let editId = null;
+
+      window.prepareEdit = (id, first, last, born) => {
+        editId = id;
+        fNameInput.value = first;
+        lNameInput.value = last;
+        bornInput.value = born || ""; // ดึงปีเกิดขึ้นมาแสดงด้วย
+        btnSave.textContent = "อัปเดตข้อมูล";
+        btnCancel.style.display = "inline-block";
+        fNameInput.focus();
+      };
+
+      btnCancel.onclick = () => {
+        editId = null;
+        fNameInput.value = "";
+        lNameInput.value = "";
+        bornInput.value = "";
+        btnSave.textContent = "บันทึกข้อมูล";
+        btnCancel.style.display = "none";
+      };
+
+      btnSave.onclick = async () => {
+        const fname = fNameInput.value;
+        const lname = lNameInput.value;
+        const born = bornInput.value;
+
+        if (!fname || !lname) return alert("กรุณากรอกข้อมูล");
+
+        try {
+          if (editId) {
+            const docRef = doc(db, "users", editId);
+            await updateDoc(docRef, {
+              first: fname,
+              last: lname,
+              born: born,
+            });
+            alert("อัปเดตข้อมูลเรียบร้อย");
+            btnCancel.onclick();
+          } else {
+            await addDoc(collection(db, "users"), {
+              first: fname,
+              last: lname,
+              born: born,
+              timestamp: new Date(),
+            });
+          }
+          fNameInput.value = "";
+          lNameInput.value = "";
+          bornInput.value = "";
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      window.deleteData = async (id) => {
+        if (confirm("ยืนยันการลบ?")) {
+          await deleteDoc(doc(db, "users", id));
+        }
+      };
+
+      function listenToUsers() {
+        onSnapshot(query(collection(db, "users")), (querySnapshot) => {
+          tableBody.innerHTML = "";
+          if (querySnapshot.empty) {
+            tableBody.innerHTML =
+              "<tr><td colspan='4' style='text-align:center;'>ไม่พบข้อมูล</td></tr>";
+            return;
+          }
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const id = doc.id;
+            const row = `
+                    <tr>
+                        <td>${data.first}</td>
+                        <td>${data.last}</td>
+                        <td>${data.born}</td>
+                        <td style="text-align:center;">
+                            <button onclick="prepareEdit('${id}', '${data.first}', '${data.last}', '${data.born}')" style="background-color: #ffc107; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; margin-right:5px;">แก้ไข</button>
+                            <button onclick="deleteData('${id}')" style="background-color: #dc3545; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">ลบ</button>
+                        </td>
+                    </tr>`;
+            tableBody.innerHTML += row;
+          });
+        });
+      }
+      listenToUsers();
+    </script>
+  </body>
+</html>
